@@ -125,56 +125,30 @@ def draw_next_event(graph, total_rate, rng):
 
 
 def update_states(graph, v_selected, counts, total_rate, model_params, rng):
-    """ If infection of 'v': 
-      - sample parent infector of 'v' from infected neighbors 'u' 
-      with probability proportionally to weight ( = number of edges) of 'u'
     """
-    beta = model_params['beta']
-    mu = model_params['mu']
+    Switched to global update: no local neighbor updates to generalize more easily.
+    """
+    s = graph.nodes[v_selected]['state']
 
-    # S -> I (infection)
-    if graph.nodes[v_selected]['state'] == 'S':
+    if s == 'S':
         event_type = 'infection'
         parent = sample_parent(graph, v_selected, rng)
-
-        counts['S'] -= 1
-        counts['I'] += 1
-
-        old_rate = graph.nodes[v_selected]['rate']
         graph.nodes[v_selected]['state'] = 'I'
-        graph.nodes[v_selected]['rate'] = mu
-        total_rate += mu - old_rate
 
-        for j in graph.neighbors(v_selected):
-            if graph.nodes[j]['state'] == 'S':
-                w = graph[v_selected][j].get('weight', 1.0)
-                dw = beta * w
-                graph.nodes[j]['rate'] += dw
-                total_rate += dw
-    
-    # NOTE: not 'S' we treat as 'I'
-    # This holds if selected_i has positive rate and states are only S, I, R
-    else:   # I -> R (recovery)
+    elif s == 'I':
         event_type = 'recovery'
-        parent = None # if recovery happens, there is no infector parent
-
-        counts['I'] -= 1
-        counts['R'] += 1
-
-        old_rate = graph.nodes[v_selected]['rate']
+        parent = None
         graph.nodes[v_selected]['state'] = 'R'
-        graph.nodes[v_selected]['rate'] = 0.0
-        total_rate -= old_rate
 
-        for j in graph.neighbors(v_selected):
-            if graph.nodes[j]['state'] == 'S':
-                w = graph[v_selected][j].get('weight', 1.0)
-                dw = beta * w
-                graph.nodes[j]['rate'] -= dw
-                total_rate -= dw
+    else:
+        # TODO: extend to SEIR-type dynamics with multiple stages for E and I
+        pass
+
+    # recompute everything
+    counts = initialize_counts(graph)
+    total_rate = initialize_rates(graph, model_params)
 
     return event_type, counts, total_rate, parent
-
 
 def sample_parent(graph, v_selected, rng):
     """ Samples parent infector from infected neighbors of v_selected. """

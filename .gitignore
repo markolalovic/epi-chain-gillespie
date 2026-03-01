@@ -45,6 +45,9 @@ ipython_config.py
 # local notes
 notes/
 
+# notebooks
+/notebooks
+
 # R if needed later
 .Rhistory
 .Rapp.history

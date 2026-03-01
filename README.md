@@ -14,9 +14,12 @@ This repository contains an implementation of Gillespie algorithm located under 
 - extend to compartmental model: `S, E, I_pre, I_asym, I_sym, R`
 - add detection book-keeping class `D`
 
+## UPDATES:
+- removed local updates and switched to global updates
+- this makes it run slower, but makes it easier to implement extensions
+
 
 ## Example
-
 Load the example contact network
 ```python
 from src.contact_networks import example_contact_network
@@ -135,7 +138,7 @@ Optional: [SageMath](https://doc.sagemath.org/html/en/installation/index.html) f
 
 ### Note on terminology
 
-According to the tutorial, this repository currently implements *Gillespie's direct method* for a continuous-time Markov-chain SIR model on a contact network, with **vertex-centric events** and **local updates**.
+According to the tutorial, this repository currently implements *Gillespie's direct method* for a continuous-time Markov-chain SIR model on a contact network, with **vertex-centric events**.
 
 The simulation step is of the form:
 
@@ -145,7 +148,7 @@ The simulation step is of the form:
 
 3. Select the next event with probability $\lambda_i / \Lambda$
 
-4. Update the state and affected rates **locally**
+4. Update the state and affected rates
 
 ### Additional notes
 
