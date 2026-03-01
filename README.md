@@ -70,7 +70,7 @@ from src.gillespie_sim import gillespie_sim, get_node_order
 
 # set model parameters
 model_params = {
-    "beta_AB": 2.0,  # transmission \beta_{A, B} (= \beta_{B, A})        
+    "beta_AB": 2.0,  # transmission \beta_{A, B} (= \beta_{B, A})          
     "beta_AA": 2.0,  # transmission \beta_{A, A}
     "beta_BB": 2.0,  # transmission \beta_{B, B}
     "sigma": 1.0,    # E progression
