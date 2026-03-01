@@ -3,7 +3,6 @@
 # Test script
 # for simple check that outputs are the same after modifications
 # $ diff before after
-# 
 
 from pathlib import Path
 from pprint import pprint
@@ -18,6 +17,7 @@ if str(ROOT) not in sys.path:
 from src.contact_networks import example_contact_network
 from src.gillespie_sim import gillespie_sim, get_node_order
 
+
 if __name__ == "__main__":
     graph_g = example_contact_network()
 
@@ -26,11 +26,19 @@ if __name__ == "__main__":
     print()
 
     model_params = {
-        "beta": 2.0,
-        "mu": 1.0,
+        "beta_AB": 2.0,  # transmission \beta_{A, B}        
+        "beta_AA": 2.0,  # transmission \beta_{A, B}
+        "beta_BB": 2.0,  # transmission \beta_{B, B}
+        "sigma": 1.0,    # E progression
+        "mu": 1.0,       # I progression
+        "K1": 2,         # number of E stages
+        "K2": 2,         # number of I_asym stages
+        "K3": 2,         # number of I_sym stages
+        "alpha": 0.25,    # branching at E:K1 probability to go to I_asym:1
+        "p_detect": 0.8,   # detection probability upon entry to Is:1
     }
 
-    time_max = 5.0
+    time_max = 50.0
     rng = np.random.default_rng(12345)
     n_init_infected = 2
 
@@ -43,13 +51,31 @@ if __name__ == "__main__":
     )
 
     print("out['init'] =")
-    pprint(out["init"])
+    pprint(out['init'])
     print()
 
     print("out['node_order'] =")
-    pprint(out["node_order"])
+    pprint(out['node_order'])
     print()
 
     print("out['events'][:5] =")
-    pprint(out["events"][:5])
+    pprint(out['events'][:5])
+    print()
+
+    tc = list(zip(out["times"], out["counts"]))
+
+    print("first 10 time points with counts:")
+    for t, c in tc[:10]:
+        print(float(t), c)
+    print()
+
+    print("last 10 time points with counts:")
+    for t, c in tc[-10:]:
+        print(float(t), c)
+    print()
+
+    print("last 10 time points with D(t) only:")
+    for t, c in tc[-10:]:
+        print(float(t), c["D"])
+    print()
 
