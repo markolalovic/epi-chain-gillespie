@@ -9,7 +9,7 @@ This repository contains an implementation of Gillespie's algorithm for simulati
 
 - event-level output (time, event type, selected vertex, parent, counts, full state snapshots)
 
-The simulation code is in `src/gillespie_sim.py`.
+The simulation code is in [`src/gillespie_sim.py`](./src/gillespie_sim.py).
 
 ## Implemented model
 Implemented model is a staged SEIR-type of model.
@@ -49,7 +49,7 @@ Detection is bookkeeping only (**not** a compartment):
 ## Example
 
 ### Example contact network
-Load the example contact network
+Load the example contact network from [`./src/contact_networks.py`](./src/contact_networks.py):
 ```python
 from src.contact_networks import example_contact_network
 
@@ -191,7 +191,7 @@ for t, c in tc[-10:]:
 # 50.0 5
 ```
 
-See also `scripts/run_gillespie_sim.py` and `scripts/output.txt`.
+See also [`scripts/run_gillespie_sim.py`](./scripts/run_gillespie_sim.py) and [`scripts/output.txt`](./scripts/output.txt).
 
 
 ### Infection-chain tracing 
