@@ -7,6 +7,7 @@ from copy import deepcopy
 def gillespie_sim(graph_g, model_params, time_max, rng, n_init_infected=1):
     r"""
     Simulates linear-chain SEIR on a weighted two-group contact network graph_g.
+    UPDATE: I_pre block added
 
     - `model_params` is a dictionary with keys:
       - "beta_AA", "beta_BB", "beta_AB"
@@ -19,16 +20,18 @@ def gillespie_sim(graph_g, model_params, time_max, rng, n_init_infected=1):
   
     - Node states are strings:
       "S", "R",
-      "E:1"... "E:K1",
-      "Ia:1"... "Ia:K2",
-      "Is:1"... "Is:K3"
+      "E:1", ..., "E:K1",
+      "Ip:1", ..., "Ip:K_pre",  <- UPDATE
+      "Ia:1", ..., "Ia:K2",
+      "Is:1", ..., "Is:K3"
 
     - Infection intensity for susceptible v:
-      lambda_v = \sum_{u~v} w_uv beta_{g(u)g(v)} 1_{u is infectious, i.e.: Iasym or Isym}
+      lambda_v = \sum_{u~v} w_uv beta_{g(u)g(v)} 1_{u is infectious, i.e.: Ipre or Iasym or Isym} <- UPDATE
     
     - Exposed is a block of stages:
       - E:1, ..., E:K1
-      - E:K1 branches to Ia:1 or Is:1 with probability \alpha and 1 - \alpha
+    
+    - I_p:K_pre branches to Ia:1 or Is:1 with probability \alpha and 1 - \alpha
     
     - Detection is another bookkeeping process:
       - upon entry of `v` to "Is:1", do Bernoulli(p_detect)
@@ -119,7 +122,7 @@ def draw_next_event(graph, total_rate, rng):
 
     for i, attrs in graph.nodes(data=True):
         running_sum += attrs['rate']
-        # if u2 == 0, then target = 0, we should not select the first vtx
+        # inverse CDF selection
         if running_sum > target: 
             v_selected = i
             break
@@ -131,7 +134,12 @@ def draw_next_event(graph, total_rate, rng):
 
 
 def initialize_states(graph, rng, n_init_infected=1):
-    """ Samples n_init_infected chosen uniformly at random from group A, and sets them to "Ia:1". """
+    """ 
+    Samples n_init_infected chosen uniformly at random from group A.
+
+    Before: set them to "Ia:1"
+    UPDATE: With I_pre block: set them to "Ip:1"
+    """
     nodes = list(graph.nodes())
     nodes_A = [i for i in nodes if graph.nodes[i]["group"] == "A"]
 
@@ -142,9 +150,11 @@ def initialize_states(graph, rng, n_init_infected=1):
 
     infected = []
     if n_init_infected > 0:
+        # TODO: add guard: n_init_infected > len(nodes_A)
         infected = list(rng.choice(nodes_A, size=n_init_infected, replace=False))
         for i in infected:
-            graph.nodes[i]["state"] = "Ia:1"
+            # graph.nodes[i]["state"] = "Ia:1"
+            graph.nodes[i]["state"] = "Ip:1" # UPDATE
     
     # clean up output e.g. `np.str_('a2')` with .item() as in sample_parent
     infected = [inf.item() for inf in infected]
@@ -153,15 +163,20 @@ def initialize_states(graph, rng, n_init_infected=1):
 
 def update_states(graph, v_selected, model_params, rng):
     """
-    Switched to global update: no local neighbor updates to generalize more easily.
-
     This function only mutates node states, rates and counts are recomputed outside.
+
+    UPDATE: adding node state mutation for staged I_pre block.
+
+    Global update of state: no local neighbor updates to generalize more easily.
 
     Returns: event_type, parent, detected_inc
     """
     alpha = model_params["alpha"]
     p_detect = model_params["p_detect"]
+
+    # TODO: perhaps rename also: K1 -> K_expo, K_2 -> K_asym, K3 -> K_sym
     K1 = int(model_params["K1"])
+    K_pre = int(model_params["K_pre"])
     K2 = int(model_params["K2"])
     K3 = int(model_params["K3"])
 
@@ -178,25 +193,36 @@ def update_states(graph, v_selected, model_params, rng):
     
     # R has zero rate and should never be selected
     if s == "R":
-        raise RuntimeError("Error: Selected a recovered node with zero rate!")
+        raise RuntimeError("Error: update_states selected a recovered node with zero rate!")
 
     # progress through blocks E, I_a, I_s
     # detection bookkeeping on progression to I_s:1
     block, k = parse_state(s)
 
-    # E exposed progression and branching at k=K1
+    # E block: progression only, no branching here with added I_pre block
     if block == "E":
         if k < K1:
             event_type = "E_progress"
             graph.nodes[v_selected]["state"] = f"E:{k+1}"
         else:
             # k == K1
+            event_type = "E_to_Ip"
+            graph.nodes[v_selected]["state"] = "Ip:1"
+        return event_type, parent, detected_inc
+
+    # Ip block: progression and branching to Ia:1, Is:1
+    if block == "Ip":
+        if k < K_pre:
+            event_type = "Ip_progress"
+            graph.nodes[v_selected]["state"] = f"Ip:{k+1}"
+        else:
+            # k == K_pre            
             u = rng.random()
             if u < alpha:
-                event_type = "E_to_Ia"
+                event_type = "Ip_to_Ia"
                 graph.nodes[v_selected]["state"] = "Ia:1"
             else:
-                event_type = "E_to_Is"
+                event_type = "Ip_to_Is"
                 graph.nodes[v_selected]["state"] = "Is:1"
 
                 # detection bookkeeping upon entry to Is:1
@@ -227,12 +253,20 @@ def update_states(graph, v_selected, model_params, rng):
             graph.nodes[v_selected]["state"] = "R"
         return event_type, parent, detected_inc
 
+    # else: throw unknown block state error
+    raise ValueError(f"Error: update_states encountered unknown state block: state={s}, block={block}")
+
 
 ## global rate computation 
 def compute_all_rates(graph, model_params):
+    """ UPDATE: adding lambda_pre, K_pre to handle block I_pre = Ip """
+
     sigma = model_params["sigma"]
+    lambda_pre = model_params["lambda_pre"]
     mu = model_params["mu"]
+
     K1 = int(model_params["K1"])
+    K_pre = int(model_params["K_pre"])
     K2 = int(model_params["K2"])
     K3 = int(model_params["K3"])
 
@@ -251,12 +285,14 @@ def compute_all_rates(graph, model_params):
             block, k = parse_state(s)
             if block == "E":
                 rate_v = sigma * K1
+            elif block == "Ip":
+                rate_v = lambda_pre * K_pre                
             elif block == "Ia":
                 rate_v = mu * K2
             elif block == "Is":
                 rate_v = mu * K3
             else:
-                raise ValueError(f"Unknown state/block: {s}")
+                raise ValueError(f"Error: unknown state block in compute_all_rates: {s}")
 
         graph.nodes[v]["rate"] = rate_v
         total_rate += rate_v
@@ -329,16 +365,16 @@ def parse_state(state):
     return block, int(k)
 
 def is_infectious(state):
-    # definition of infectious set \mathcal{I}
-    return state.startswith("Ia:") or state.startswith("Is:")
+    # definition of infectious set \mathcal{I} = I_pre, I_asym, I_sym
+    return state.startswith("Ip:") or state.startswith("Ia:") or state.startswith("Is:")
 
 
 def compute_counts(graph):
     """
     Aggregate counts (substage-collapsed):
-      S, E, I_asym, I_sym, R plus bookkeeping D (cumulative detected).
+      S, E, I_pre, I_asym, I_sym, R plus bookkeeping D (cumulative detected).
     """
-    counts = {"S": 0, "E": 0, "I_asym": 0, "I_sym": 0, "R": 0, "D": 0}
+    counts = {"S": 0, "E": 0, "I_pre": 0, "I_asym": 0, "I_sym": 0, "R": 0, "D": 0}
 
     for v in graph.nodes:
         s = graph.nodes[v]["state"]
@@ -349,12 +385,14 @@ def compute_counts(graph):
             counts["R"] += 1
         elif s.startswith("E:"):
             counts["E"] += 1
+        elif s.startswith("Ip:"):
+            counts["I_pre"] += 1            
         elif s.startswith("Ia:"):
             counts["I_asym"] += 1
         elif s.startswith("Is:"):
             counts["I_sym"] += 1
         else:
-            raise ValueError(f"Unknown state in counts: {s}")
+            raise ValueError(f"Error: unknown state block in counts: {s}")
 
         if graph.nodes[v].get("detected", False):
             counts["D"] += 1
@@ -372,9 +410,9 @@ def do_checks(graph, counts, total_rate, prev_D=None, tol=1e-12):
 
     # compartments invariant
     N = len(graph.nodes)
-    nsum = counts["S"] + counts["E"] + counts["I_asym"] + counts["I_sym"] + counts["R"]
+    nsum = counts["S"] + counts["E"] + counts["I_pre"] + counts["I_asym"] + counts["I_sym"] + counts["R"]
     if nsum != N:
-        raise RuntimeError(f"Error count invariant broken: S + E + Ia + Is + R = {nsum}, N = {N}")
+        raise RuntimeError(f"Error in block count invariant: S + E + Ip + Ia + Is + R = {nsum} neq N = {N}")
 
     # bounds on D and monotonicity of D
     D = counts["D"]

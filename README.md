@@ -12,23 +12,29 @@ This repository contains an implementation of Gillespie's algorithm for simulati
 The simulation code is in [`src/gillespie_sim.py`](./src/gillespie_sim.py).
 
 ## Implemented model
-Implemented model is a staged SEIR-type of model.
+Implemented model is a staged SEIR-type of model with an additional presymptomatic infectious block `Ip`.
 
 ### State space
 Node states are represented with strings:
 - `"S"` (susceptible)
 - `"E:1", ..., "E:K1"`  (stages of exposed block `E`)
+- `"Ip:1", ..., "Ip:K_pre"` (stages of presymptomatic infectious block `Ip`)
 - `"Ia:1", ..., "Ia:K2"` (stages of infectious asymptomatic block `Ia`)
 - `"Is:1", ..., "Is:K3"` (stages of infectious symptomatic block `Is`)
 - `"R"` (recovered)
 
-(The infectious set is `Ia, Is`.)
+(The infectious set is `Ip, Ia, Is`.)
 
-### Exposed progression and branching
+### Exposed progression
 Exposed block has `K1` stages, with constant rate `sigma K1` at each stage:
 - `E:k -> E:k+1` for `k < K1`
-- `E:K1 -> Ia:1` with probability `alpha`
-- `E:K1 -> Is:1` with probability `1 - alpha`
+- `E:K1 -> Ip:1`
+
+### Presymptomatic progression and branching
+Presymptomatic block has `K_pre` stages, with constant rate `lambda_pre K_pre` at each stage:
+- `Ip:k -> Ip:k+1` for `k < K_pre`
+- `Ip:K_pre -> Ia:1` with probability `alpha`
+- `Ip:K_pre -> Is:1` with probability `1 - alpha`
 
 ### Infectious progression and recovery
 Asymptomatic block has `K2` stages, with rate `mu K2` at each stage:
@@ -64,22 +70,27 @@ The example graph shown below has a partition into two groups (vertex types) `A`
 ![Example contact network](figures/contact_networks/g_weighted.svg)
 
 ### Example simulation
-To run the simulation of staged SEIR with detection bookkeeping, using a fixed RNG seed, and store the output:
+To run the simulation of staged SEIR with presymptomatic block `Ip` and detection bookkeeping, using a fixed RNG seed, and store the output:
 ```python
 from src.gillespie_sim import gillespie_sim, get_node_order
 
 # set model parameters
 model_params = {
-    "beta_AB": 2.0,  # transmission \beta_{A, B} (= \beta_{B, A})          
-    "beta_AA": 2.0,  # transmission \beta_{A, A}
-    "beta_BB": 2.0,  # transmission \beta_{B, B}
-    "sigma": 1.0,    # E progression
-    "mu": 1.0,       # I progression
-    "K1": 2,         # number of E stages
-    "K2": 2,         # number of I_asym stages
-    "K3": 2,         # number of I_sym stages
-    "alpha": 0.25,    # branching at E:K1 probability to go to I_asym:1
-    "p_detect": 0.8,   # detection probability upon entry to Is:1
+    "beta_AB": 2.0,     # transmission beta_{A, B} (= beta_{B, A})
+    "beta_AA": 2.0,     # transmission beta_{A, A}
+    "beta_BB": 2.0,     # transmission beta_{B, B}
+
+    "sigma": 1.0,       # E progression rate
+    "lambda_pre": 1.0,  # Ip progression rate    
+    "mu": 1.0,          # I progression rate
+
+    "K1": 2,            # number of E stages
+    "K_pre": 2,         # number of I_pre stages
+    "K2": 2,            # number of I_asym stages
+    "K3": 2,            # number of I_sym stages
+
+    "alpha": 0.25,      # branching at Ip:K_pre probability to go to Ia:1
+    "p_detect": 0.8,    # detection probability upon entry to Is:1
 }
 
 time_max = 50.0
@@ -118,31 +129,31 @@ out['events'][:5]
 #   'event_type': 'infection',
 #   'node': 'b5',
 #   'parent': 'a1',
-#   'states': ['Ia:1', 'Ia:1', 'S', 'S', 'S', 'S', 'S', 'E:1', 'S'],
+#   'states': ['Ip:1', 'Ip:1', 'S', 'S', 'S', 'S', 'S', 'E:1', 'S'],
 #   't': np.float64(0.0380083620196087)},
 #  {'detected_inc': 0,
 #   'event_type': 'infection',
 #   'node': 'b4',
 #   'parent': 'a2',
-#   'states': ['Ia:1', 'Ia:1', 'S', 'S', 'S', 'S', 'E:1', 'E:1', 'S'],
+#   'states': ['Ip:1', 'Ip:1', 'S', 'S', 'S', 'S', 'E:1', 'E:1', 'S'],
 #   't': np.float64(0.04812551960098333)},
 #  {'detected_inc': 0,
 #   'event_type': 'infection',
 #   'node': 'b6',
 #   'parent': 'a2',
-#   'states': ['Ia:1', 'Ia:1', 'S', 'S', 'S', 'S', 'E:1', 'E:1', 'E:1'],
+#   'states': ['Ip:1', 'Ip:1', 'S', 'S', 'S', 'S', 'E:1', 'E:1', 'E:1'],
 #   't': np.float64(0.08536049771657381)},
 #  {'detected_inc': 0,
 #   'event_type': 'infection',
 #   'node': 'b3',
 #   'parent': 'a1',
-#   'states': ['Ia:1', 'Ia:1', 'S', 'S', 'S', 'E:1', 'E:1', 'E:1', 'E:1'],
+#   'states': ['Ip:1', 'Ip:1', 'S', 'S', 'S', 'E:1', 'E:1', 'E:1', 'E:1'],
 #   't': np.float64(0.2205242250400909)},
 #  {'detected_inc': 0,
 #   'event_type': 'E_progress',
 #   'node': 'b5',
 #   'parent': None,
-#   'states': ['Ia:1', 'Ia:1', 'S', 'S', 'S', 'E:1', 'E:1', 'E:2', 'E:1'],
+#   'states': ['Ip:1', 'Ip:1', 'S', 'S', 'S', 'E:1', 'E:1', 'E:2', 'E:1'],
 #   't': np.float64(0.24967967610295402)}]
 
 tc = list(zip(out["times"], out["counts"]))
@@ -150,45 +161,44 @@ tc = list(zip(out["times"], out["counts"]))
 print("first 10 time points with counts:")
 for t, c in tc[:10]:
     print(float(t), c)
-# 0.0 {'S': 7, 'E': 0, 'I_asym': 2, 'I_sym': 0, 'R': 0, 'D': 0}
-# 0.0380083620196087 {'S': 6, 'E': 1, 'I_asym': 2, 'I_sym': 0, 'R': 0, 'D': 0}
-# 0.04812551960098333 {'S': 5, 'E': 2, 'I_asym': 2, 'I_sym': 0, 'R': 0, 'D': 0}
-# 0.08536049771657381 {'S': 4, 'E': 3, 'I_asym': 2, 'I_sym': 0, 'R': 0, 'D': 0}
-# 0.2205242250400909 {'S': 3, 'E': 4, 'I_asym': 2, 'I_sym': 0, 'R': 0, 'D': 0}
-# 0.24967967610295402 {'S': 3, 'E': 4, 'I_asym': 2, 'I_sym': 0, 'R': 0, 'D': 0}
-# 0.30945569079928315 {'S': 2, 'E': 5, 'I_asym': 2, 'I_sym': 0, 'R': 0, 'D': 0}
-# 0.3232687126991879 {'S': 2, 'E': 5, 'I_asym': 2, 'I_sym': 0, 'R': 0, 'D': 0}
-# 0.3329481077232424 {'S': 1, 'E': 6, 'I_asym': 2, 'I_sym': 0, 'R': 0, 'D': 0}
-# 0.3501603312215322 {'S': 1, 'E': 5, 'I_asym': 3, 'I_sym': 0, 'R': 0, 'D': 0}
-
+# 0.0 {'S': 7, 'E': 0, 'I_pre': 2, 'I_asym': 0, 'I_sym': 0, 'R': 0, 'D': 0}
+# 0.0380083620196087 {'S': 6, 'E': 1, 'I_pre': 2, 'I_asym': 0, 'I_sym': 0, 'R': 0, 'D': 0}
+# 0.04812551960098333 {'S': 5, 'E': 2, 'I_pre': 2, 'I_asym': 0, 'I_sym': 0, 'R': 0, 'D': 0}
+# 0.08536049771657381 {'S': 4, 'E': 3, 'I_pre': 2, 'I_asym': 0, 'I_sym': 0, 'R': 0, 'D': 0}
+# 0.2205242250400909 {'S': 3, 'E': 4, 'I_pre': 2, 'I_asym': 0, 'I_sym': 0, 'R': 0, 'D': 0}
+# 0.24967967610295402 {'S': 3, 'E': 4, 'I_pre': 2, 'I_asym': 0, 'I_sym': 0, 'R': 0, 'D': 0}
+# 0.30945569079928315 {'S': 2, 'E': 5, 'I_pre': 2, 'I_asym': 0, 'I_sym': 0, 'R': 0, 'D': 0}
+# 0.3232687126991879 {'S': 2, 'E': 5, 'I_pre': 2, 'I_asym': 0, 'I_sym': 0, 'R': 0, 'D': 0}
+# 0.3329481077232424 {'S': 1, 'E': 6, 'I_pre': 2, 'I_asym': 0, 'I_sym': 0, 'R': 0, 'D': 0}
+# 0.3501603312215322 {'S': 1, 'E': 5, 'I_pre': 3, 'I_asym': 0, 'I_sym': 0, 'R': 0, 'D': 0}
 
 print("last 10 time points with counts:")
 for t, c in tc[-10:]:
     print(float(t), c)
-# 1.711667568833028 {'S': 0, 'E': 1, 'I_asym': 1, 'I_sym': 2, 'R': 5, 'D': 4}
-# 1.7356192593517656 {'S': 0, 'E': 1, 'I_asym': 0, 'I_sym': 2, 'R': 6, 'D': 4}
-# 1.9280560667630224 {'S': 0, 'E': 0, 'I_asym': 0, 'I_sym': 3, 'R': 6, 'D': 5}
-# 2.0886172548131707 {'S': 0, 'E': 0, 'I_asym': 0, 'I_sym': 3, 'R': 6, 'D': 5}
-# 2.1214817426972568 {'S': 0, 'E': 0, 'I_asym': 0, 'I_sym': 2, 'R': 7, 'D': 5}
-# 2.1804259208928687 {'S': 0, 'E': 0, 'I_asym': 0, 'I_sym': 2, 'R': 7, 'D': 5}
-# 3.081834566581169 {'S': 0, 'E': 0, 'I_asym': 0, 'I_sym': 2, 'R': 7, 'D': 5}
-# 3.200839788678001 {'S': 0, 'E': 0, 'I_asym': 0, 'I_sym': 1, 'R': 8, 'D': 5}
-# 4.893070532827123 {'S': 0, 'E': 0, 'I_asym': 0, 'I_sym': 0, 'R': 9, 'D': 5}
-# 50.0 {'S': 0, 'E': 0, 'I_asym': 0, 'I_sym': 0, 'R': 9, 'D': 5}
+# 2.550047280565847 {'S': 0, 'E': 0, 'I_pre': 1, 'I_asym': 2, 'I_sym': 1, 'R': 5, 'D': 5}
+# 2.6094306590188525 {'S': 0, 'E': 0, 'I_pre': 1, 'I_asym': 2, 'I_sym': 1, 'R': 5, 'D': 5}
+# 2.700205511513726 {'S': 0, 'E': 0, 'I_pre': 1, 'I_asym': 2, 'I_sym': 1, 'R': 5, 'D': 5}
+# 2.7688749444383283 {'S': 0, 'E': 0, 'I_pre': 1, 'I_asym': 2, 'I_sym': 0, 'R': 6, 'D': 5}
+# 2.784118820579597 {'S': 0, 'E': 0, 'I_pre': 0, 'I_asym': 2, 'I_sym': 1, 'R': 6, 'D': 6}
+# 3.3407691814333846 {'S': 0, 'E': 0, 'I_pre': 0, 'I_asym': 1, 'I_sym': 1, 'R': 7, 'D': 6}
+# 3.420729853065752 {'S': 0, 'E': 0, 'I_pre': 0, 'I_asym': 1, 'I_sym': 1, 'R': 7, 'D': 6}
+# 3.5274792227539966 {'S': 0, 'E': 0, 'I_pre': 0, 'I_asym': 1, 'I_sym': 0, 'R': 8, 'D': 6}
+# 4.09063247602809 {'S': 0, 'E': 0, 'I_pre': 0, 'I_asym': 0, 'I_sym': 0, 'R': 9, 'D': 6}
+# 50.0 {'S': 0, 'E': 0, 'I_pre': 0, 'I_asym': 0, 'I_sym': 0, 'R': 9, 'D': 6}
 
 print("last 10 time points with D(t) only:")
 for t, c in tc[-10:]:
     print(float(t), c["D"])
-# 1.711667568833028 4
-# 1.7356192593517656 4
-# 1.9280560667630224 5
-# 2.0886172548131707 5
-# 2.1214817426972568 5
-# 2.1804259208928687 5
-# 3.081834566581169 5
-# 3.200839788678001 5
-# 4.893070532827123 5
-# 50.0 5
+# 2.550047280565847 5
+# 2.6094306590188525 5
+# 2.700205511513726 5
+# 2.7688749444383283 5
+# 2.784118820579597 6
+# 3.3407691814333846 6
+# 3.420729853065752 6
+# 3.5274792227539966 6
+# 4.09063247602809 6
+# 50.0 6
 ```
 
 See also [`scripts/run_gillespie_sim.py`](./scripts/run_gillespie_sim.py) and [`scripts/output.txt`](./scripts/output.txt).
@@ -210,7 +220,6 @@ Thus, each infection event adds one directed edge `parent -> node` to the infect
 
 
 ## Setup
-
 Minimal setup (tested with Python 3.14):
 ```zsh
 python3 -m venv .venv
@@ -221,8 +230,6 @@ pip install numpy networkx
 
 Optional: [SageMath](https://doc.sagemath.org/html/en/installation/index.html) for drawing and exporting graphs (tested with SageMath 10.8).
 
-
-
 ## References / Links
 
 - [Wikipedia : Gillespie algorithm](https://en.wikipedia.org/wiki/Gillespie_algorithm) stochastic simulation algorithm (SSA)
@@ -232,7 +239,7 @@ Optional: [SageMath](https://doc.sagemath.org/html/en/installation/index.html) f
 
 ### Note on terminology
 
-According to the tutorial, this repository currently implements *Gillespie's direct method* for a continuous-time Markov-chain SIR model on a contact network, with **vertex-centric events**.
+According to the tutorial, this repository currently implements *Gillespie's direct method* for a continuous-time Markov-chain staged SEIR-type model (with presymptomatic block) on a contact network, with **vertex-centric events**.
 
 The simulation step is of the form:
 
@@ -242,7 +249,7 @@ The simulation step is of the form:
 
 3. Select the next event with probability $\lambda_i / \Lambda$
 
-4. Update the state and affected rates
+4. Update the state: recompute all node rates (global recomputation)
 
 ### Additional notes
 

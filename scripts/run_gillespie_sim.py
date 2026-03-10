@@ -1,8 +1,13 @@
 # scripts/run_gillespie_sim.py
 
 # Test script
-# for simple check that outputs are the same after modifications
-# $ diff before after
+# testing model with added I_pre block
+# - additional model parameters:
+#  * lambda_pre = progression rate I_pre -> I_asym, I_sym
+#  * K_pre = number of I_pre stages
+# - events now include E_to_Ip, and Ip:..
+# - counts include I_pre
+# 
 
 from pathlib import Path
 from pprint import pprint
@@ -29,11 +34,16 @@ if __name__ == "__main__":
         "beta_AB": 2.0,  # transmission \beta_{A, B} (= \beta_{B, A})          
         "beta_AA": 2.0,  # transmission \beta_{A, A}
         "beta_BB": 2.0,  # transmission \beta_{B, B}
-        "sigma": 1.0,    # E progression
-        "mu": 1.0,       # I progression
+
+        "sigma": 1.0,      # E progression
+        "lambda_pre": 1.0, # I_pre progression
+        "mu": 1.0,         # I_asym, I_sym progression
+
         "K1": 2,         # number of E stages
+        "K_pre": 2,      # number of I_pre stages
         "K2": 2,         # number of I_asym stages
         "K3": 2,         # number of I_sym stages
+
         "alpha": 0.25,    # branching at E:K1 probability to go to I_asym:1
         "p_detect": 0.8,   # detection probability upon entry to Is:1
     }
@@ -78,4 +88,5 @@ if __name__ == "__main__":
     for t, c in tc[-10:]:
         print(float(t), c["D"])
     print()
+
 
