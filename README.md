@@ -11,47 +11,6 @@ This repository contains an implementation of Gillespie's algorithm for simulati
 
 The simulation code is in [`src/gillespie_sim.py`](./src/gillespie_sim.py).
 
-## Implemented model
-Implemented model is a staged SEIR-type of model with an additional presymptomatic infectious block `Ip`.
-
-### State space
-Node states are represented with strings:
-- `"S"` (susceptible)
-- `"E:1", ..., "E:K1"`  (stages of exposed block `E`)
-- `"Ip:1", ..., "Ip:K_pre"` (stages of presymptomatic infectious block `Ip`)
-- `"Ia:1", ..., "Ia:K2"` (stages of infectious asymptomatic block `Ia`)
-- `"Is:1", ..., "Is:K3"` (stages of infectious symptomatic block `Is`)
-- `"R"` (recovered)
-
-(The infectious set is `Ip, Ia, Is`.)
-
-### Exposed progression
-Exposed block has `K1` stages, with constant rate `sigma K1` at each stage:
-- `E:k -> E:k+1` for `k < K1`
-- `E:K1 -> Ip:1`
-
-### Presymptomatic progression and branching
-Presymptomatic block has `K_pre` stages, with constant rate `lambda_pre K_pre` at each stage:
-- `Ip:k -> Ip:k+1` for `k < K_pre`
-- `Ip:K_pre -> Ia:1` with probability `alpha`
-- `Ip:K_pre -> Is:1` with probability `1 - alpha`
-
-### Infectious progression and recovery
-Asymptomatic block has `K2` stages, with rate `mu K2` at each stage:
-- `Ia:k -> Ia:k+1` for `k < K2`
-- `Ia:K2 -> R`
-
-Symptomatic block has `K3` stages, with rate `mu K3` at each stage:
-- `Is:k -> Is:k+1` for `k < K3`
-- `Is:K3 -> R`
-
-### Detection 
-Detection is bookkeeping only (**not** a compartment):
-- upon entry into `Is:1`, a Bernoulli(`p_detect`) trial is performed
-- if successful, node attribute `detected=True` is set permanently
-- and count `D(t)` = number of detected nodes at time `t` is incremented
-
-
 ## Example
 
 ### Example contact network
@@ -229,6 +188,47 @@ pip install numpy networkx
 ```
 
 Optional: [SageMath](https://doc.sagemath.org/html/en/installation/index.html) for drawing and exporting graphs (tested with SageMath 10.8).
+
+## Implemented model
+Implemented model is a staged SEIR-type of model with an additional presymptomatic infectious block `Ip`.
+
+### State space
+Node states are represented with strings:
+- `"S"` (susceptible)
+- `"E:1", ..., "E:K1"`  (stages of exposed block `E`)
+- `"Ip:1", ..., "Ip:K_pre"` (stages of presymptomatic infectious block `Ip`)
+- `"Ia:1", ..., "Ia:K2"` (stages of infectious asymptomatic block `Ia`)
+- `"Is:1", ..., "Is:K3"` (stages of infectious symptomatic block `Is`)
+- `"R"` (recovered)
+
+(The infectious set is `Ip, Ia, Is`.)
+
+### Exposed progression
+Exposed block has `K1` stages, with constant rate `sigma K1` at each stage:
+- `E:k -> E:k+1` for `k < K1`
+- `E:K1 -> Ip:1`
+
+### Presymptomatic progression and branching
+Presymptomatic block has `K_pre` stages, with constant rate `lambda_pre K_pre` at each stage:
+- `Ip:k -> Ip:k+1` for `k < K_pre`
+- `Ip:K_pre -> Ia:1` with probability `alpha`
+- `Ip:K_pre -> Is:1` with probability `1 - alpha`
+
+### Infectious progression and recovery
+Asymptomatic block has `K2` stages, with rate `mu K2` at each stage:
+- `Ia:k -> Ia:k+1` for `k < K2`
+- `Ia:K2 -> R`
+
+Symptomatic block has `K3` stages, with rate `mu K3` at each stage:
+- `Is:k -> Is:k+1` for `k < K3`
+- `Is:K3 -> R`
+
+### Detection 
+Detection is bookkeeping only (**not** a compartment):
+- upon entry into `Is:1`, a Bernoulli(`p_detect`) trial is performed
+- if successful, node attribute `detected=True` is set permanently
+- and count `D(t)` = number of detected nodes at time `t` is incremented
+
 
 ## References / Links
 

@@ -101,6 +101,7 @@ if __name__ == "__main__":
         figsize=[11, 6],
     )
 
-    p.save(str(outpath))
+    # p.save(str(outpath))
+    p.save(str(outpath), axes_pad=0.12)
     print(f"Saved to: {outpath}")
 
