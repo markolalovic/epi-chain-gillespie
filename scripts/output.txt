@@ -1,77 +1,117 @@
-get_node_order(graph_g) =
+$ python scripts/run_gillespie_sim.py 
+Example contact network
+=======================
+node_order =
 ['a1', 'a2', 'a3', 'b1', 'b2', 'b3', 'b4', 'b5', 'b6']
 
-out['init'] =
+node groups =
+{'a1': 'A',
+ 'a2': 'A',
+ 'a3': 'A',
+ 'b1': 'B',
+ 'b2': 'B',
+ 'b3': 'B',
+ 'b4': 'B',
+ 'b5': 'B',
+ 'b6': 'B'}
+
+Simulation inputs
+=================
+time_max = 50.0
+n_init_infected = 2
+rng seed = 12345
+wave = 'wave2'
+
+model_params =
+{'K1': 2,
+ 'K2': 2,
+ 'K3': 2,
+ 'K_pre': 2,
+ 'alpha': 0.25,
+ 'beta_AA': 2.0,
+ 'beta_AB': 2.0,
+ 'beta_BB': 2.0,
+ 'lambda_pre': 1.0,
+ 'mu': 1.0,
+ 'sigma': 1.0}
+
+Simulation output: latent disease process
+=========================================
+initial infected =
 {'initial_infected_nodes': ['a2', 'a1']}
 
-out['node_order'] =
-['a1', 'a2', 'a3', 'b1', 'b2', 'b3', 'b4', 'b5', 'b6']
+First time points with latent disease counts
+--------------------------------------------
+t =   0.0000   {'S': 7, 'E': 0, 'I_pre': 2, 'I_asym': 0, 'I_sym': 0, 'R': 0}
+t =   0.0269   {'S': 6, 'E': 1, 'I_pre': 2, 'I_asym': 0, 'I_sym': 0, 'R': 0}
+t =   0.0554   {'S': 5, 'E': 2, 'I_pre': 2, 'I_asym': 0, 'I_sym': 0, 'R': 0}
+t =   0.1502   {'S': 4, 'E': 3, 'I_pre': 2, 'I_asym': 0, 'I_sym': 0, 'R': 0}
+t =   0.1868   {'S': 4, 'E': 3, 'I_pre': 2, 'I_asym': 0, 'I_sym': 0, 'R': 0}
+t =   0.2063   {'S': 3, 'E': 4, 'I_pre': 2, 'I_asym': 0, 'I_sym': 0, 'R': 0}
+t =   0.2242   {'S': 2, 'E': 5, 'I_pre': 2, 'I_asym': 0, 'I_sym': 0, 'R': 0}
+t =   0.2285   {'S': 2, 'E': 5, 'I_pre': 1, 'I_asym': 0, 'I_sym': 1, 'R': 0}
+t =   0.2598   {'S': 2, 'E': 5, 'I_pre': 1, 'I_asym': 0, 'I_sym': 1, 'R': 0}
+t =   0.3444   {'S': 2, 'E': 5, 'I_pre': 1, 'I_asym': 0, 'I_sym': 1, 'R': 0}
+...
 
-out['events'][:5] =
-[{'detected_inc': 0,
-  'event_type': 'infection',
-  'node': 'b5',
-  'parent': 'a1',
-  'states': ['Ia:1', 'Ia:1', 'S', 'S', 'S', 'S', 'S', 'E:1', 'S'],
-  't': np.float64(0.0380083620196087)},
- {'detected_inc': 0,
-  'event_type': 'infection',
-  'node': 'b4',
-  'parent': 'a2',
-  'states': ['Ia:1', 'Ia:1', 'S', 'S', 'S', 'S', 'E:1', 'E:1', 'S'],
-  't': np.float64(0.04812551960098333)},
- {'detected_inc': 0,
-  'event_type': 'infection',
-  'node': 'b6',
-  'parent': 'a2',
-  'states': ['Ia:1', 'Ia:1', 'S', 'S', 'S', 'S', 'E:1', 'E:1', 'E:1'],
-  't': np.float64(0.08536049771657381)},
- {'detected_inc': 0,
-  'event_type': 'infection',
-  'node': 'b3',
-  'parent': 'a1',
-  'states': ['Ia:1', 'Ia:1', 'S', 'S', 'S', 'E:1', 'E:1', 'E:1', 'E:1'],
-  't': np.float64(0.2205242250400909)},
- {'detected_inc': 0,
-  'event_type': 'E_progress',
-  'node': 'b5',
-  'parent': None,
-  'states': ['Ia:1', 'Ia:1', 'S', 'S', 'S', 'E:1', 'E:1', 'E:2', 'E:1'],
-  't': np.float64(0.24967967610295402)}]
+Last time points with latent disease counts
+-------------------------------------------
+t =   2.2822   {'S': 0, 'E': 1, 'I_pre': 0, 'I_asym': 0, 'I_sym': 2, 'R': 6}
+t =   2.4868   {'S': 0, 'E': 1, 'I_pre': 0, 'I_asym': 0, 'I_sym': 1, 'R': 7}
+t =   2.7641   {'S': 0, 'E': 1, 'I_pre': 0, 'I_asym': 0, 'I_sym': 1, 'R': 7}
+t =   3.1295   {'S': 0, 'E': 0, 'I_pre': 1, 'I_asym': 0, 'I_sym': 1, 'R': 7}
+t =   4.0784   {'S': 0, 'E': 0, 'I_pre': 1, 'I_asym': 0, 'I_sym': 1, 'R': 7}
+t =   4.0902   {'S': 0, 'E': 0, 'I_pre': 1, 'I_asym': 0, 'I_sym': 0, 'R': 8}
+t =   5.0819   {'S': 0, 'E': 0, 'I_pre': 0, 'I_asym': 0, 'I_sym': 1, 'R': 8}
+t =   5.0826   {'S': 0, 'E': 0, 'I_pre': 0, 'I_asym': 0, 'I_sym': 1, 'R': 8}
+t =   6.6831   {'S': 0, 'E': 0, 'I_pre': 0, 'I_asym': 0, 'I_sym': 0, 'R': 9}
+t =  50.0000   {'S': 0, 'E': 0, 'I_pre': 0, 'I_asym': 0, 'I_sym': 0, 'R': 9}
 
-first 10 time points with counts:
-0.0 {'S': 7, 'E': 0, 'I_asym': 2, 'I_sym': 0, 'R': 0, 'D': 0}
-0.0380083620196087 {'S': 6, 'E': 1, 'I_asym': 2, 'I_sym': 0, 'R': 0, 'D': 0}
-0.04812551960098333 {'S': 5, 'E': 2, 'I_asym': 2, 'I_sym': 0, 'R': 0, 'D': 0}
-0.08536049771657381 {'S': 4, 'E': 3, 'I_asym': 2, 'I_sym': 0, 'R': 0, 'D': 0}
-0.2205242250400909 {'S': 3, 'E': 4, 'I_asym': 2, 'I_sym': 0, 'R': 0, 'D': 0}
-0.24967967610295402 {'S': 3, 'E': 4, 'I_asym': 2, 'I_sym': 0, 'R': 0, 'D': 0}
-0.30945569079928315 {'S': 2, 'E': 5, 'I_asym': 2, 'I_sym': 0, 'R': 0, 'D': 0}
-0.3232687126991879 {'S': 2, 'E': 5, 'I_asym': 2, 'I_sym': 0, 'R': 0, 'D': 0}
-0.3329481077232424 {'S': 1, 'E': 6, 'I_asym': 2, 'I_sym': 0, 'R': 0, 'D': 0}
-0.3501603312215322 {'S': 1, 'E': 5, 'I_asym': 3, 'I_sym': 0, 'R': 0, 'D': 0}
+First disease events
+--------------------
+t =   0.0269   type = infection      node = b4   parent = a2
+t =   0.0554   type = infection      node = a3   parent = a2
+t =   0.1502   type = infection      node = b1   parent = a1
+t =   0.1868   type = Ip_progress    node = a2   parent = None
+t =   0.2063   type = infection      node = b6   parent = a2
+t =   0.2242   type = infection      node = b5   parent = a1
+t =   0.2285   type = Ip_to_Is       node = a2   parent = None
+t =   0.2598   type = E_progress     node = a3   parent = None
+t =   0.3444   type = Is_progress    node = a2   parent = None
+t =   0.3513   type = Ip_progress    node = a1   parent = None
+...
 
-last 10 time points with counts:
-1.711667568833028 {'S': 0, 'E': 1, 'I_asym': 1, 'I_sym': 2, 'R': 5, 'D': 4}
-1.7356192593517656 {'S': 0, 'E': 1, 'I_asym': 0, 'I_sym': 2, 'R': 6, 'D': 4}
-1.9280560667630224 {'S': 0, 'E': 0, 'I_asym': 0, 'I_sym': 3, 'R': 6, 'D': 5}
-2.0886172548131707 {'S': 0, 'E': 0, 'I_asym': 0, 'I_sym': 3, 'R': 6, 'D': 5}
-2.1214817426972568 {'S': 0, 'E': 0, 'I_asym': 0, 'I_sym': 2, 'R': 7, 'D': 5}
-2.1804259208928687 {'S': 0, 'E': 0, 'I_asym': 0, 'I_sym': 2, 'R': 7, 'D': 5}
-3.081834566581169 {'S': 0, 'E': 0, 'I_asym': 0, 'I_sym': 2, 'R': 7, 'D': 5}
-3.200839788678001 {'S': 0, 'E': 0, 'I_asym': 0, 'I_sym': 1, 'R': 8, 'D': 5}
-4.893070532827123 {'S': 0, 'E': 0, 'I_asym': 0, 'I_sym': 0, 'R': 9, 'D': 5}
-50.0 {'S': 0, 'E': 0, 'I_asym': 0, 'I_sym': 0, 'R': 9, 'D': 5}
+Simulation output: observed resident cases
+==========================================
+Detected resident-case process
+------------------------------
+wave = wave2
 
-last 10 time points with D(t) only:
-1.711667568833028 4
-1.7356192593517656 4
-1.9280560667630224 5
-2.0886172548131707 5
-2.1214817426972568 5
-2.1804259208928687 5
-3.081834566581169 5
-3.200839788678001 5
-4.893070532827123 5
-50.0 5
+t =   0.0000   D =  0   D_B =  0
+t =   0.8544   D =  1   D_B =  1
+t =   0.9218   D =  2   D_B =  2
+t =   0.9218   D =  3   D_B =  3
+t =   1.8152   D =  4   D_B =  4
+t =   5.0819   D =  5   D_B =  5
+t =   5.6696   D =  5   D_B =  5
+t =  50.0000   D =  5   D_B =  5
 
+Detection events
+----------------
+t =   0.8544   kind = symptom    test = PCR   n_tested =  1   n_pos =  1   n_counted =  1   positive_nodes = ['b1']
+t =   0.9218   kind = symptom    test = PCR   n_tested =  1   n_pos =  1   n_counted =  1   positive_nodes = ['b5']
+t =   0.9218   kind = outbreak   test = PCR   n_tested =  4   n_pos =  1   n_counted =  1   positive_nodes = ['b3']
+t =   1.8152   kind = symptom    test = PCR   n_tested =  1   n_pos =  1   n_counted =  1   positive_nodes = ['b2']
+t =   5.0819   kind = symptom    test = PCR   n_tested =  1   n_pos =  1   n_counted =  1   positive_nodes = ['b4']
+t =   5.6696   kind = outbreak   test = PCR   n_tested =  1   n_pos =  0   n_counted =  0   positive_nodes = []
+
+Outbreak triggers
+-----------------
+t_trigger =   0.9218   recent_count = 2   scheduled_test_times = [0.9218, 5.6696]
+
+Final summary
+=============
+final latent disease counts = {'S': 0, 'E': 0, 'I_pre': 0, 'I_asym': 0, 'I_sym': 0, 'R': 9}
+final detected counts = {'D': 5, 'D_B': 5}
+detected resident nodes = ['b1', 'b2', 'b3', 'b4', 'b5']
+(.venv) 

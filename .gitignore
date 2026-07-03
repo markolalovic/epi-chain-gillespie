@@ -46,7 +46,7 @@ ipython_config.py
 notes/
 
 # notebooks
-/notebooks
+notebooks/
 
 # R if needed later
 .Rhistory

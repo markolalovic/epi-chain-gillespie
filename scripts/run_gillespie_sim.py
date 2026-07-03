@@ -1,14 +1,5 @@
 # scripts/run_gillespie_sim.py
 
-# Test script
-# testing model with added I_pre block
-# - additional model parameters:
-#  * lambda_pre = progression rate I_pre -> I_asym, I_sym
-#  * K_pre = number of I_pre stages
-# - events now include E_to_Ip, and Ip:..
-# - counts include I_pre
-# 
-
 from pathlib import Path
 from pprint import pprint
 import sys
@@ -21,72 +12,103 @@ if str(ROOT) not in sys.path:
 
 from src.contact_networks import example_contact_network
 from src.gillespie_sim import gillespie_sim, get_node_order
-
+from src.utils import *
 
 if __name__ == "__main__":
+    
+    # 1. Contact network
     graph_g = example_contact_network()
 
-    print("get_node_order(graph_g) =")
+    print("Example contact network")
+    print("=======================")
+    print("node_order =")
     print(get_node_order(graph_g))
     print()
 
+    print("node groups =")
+    pprint({v: graph_g.nodes[v]["group"] for v in get_node_order(graph_g)})
+    print()
+
+    # 2. Model parameters
     model_params = {
-        "beta_AB": 2.0,  # transmission \beta_{A, B} (= \beta_{B, A})          
-        "beta_AA": 2.0,  # transmission \beta_{A, A}
-        "beta_BB": 2.0,  # transmission \beta_{B, B}
+        "beta_AB": 2.0,      # transmission beta_{A,B} (= beta_{B,A})
+        "beta_AA": 2.0,      # transmission beta_{A,A}
+        "beta_BB": 2.0,      # transmission beta_{B,B}
 
-        "sigma": 1.0,      # E progression
-        "lambda_pre": 1.0, # I_pre progression
-        "mu": 1.0,         # I_asym, I_sym progression
+        "sigma": 1.0,        # exposed progression rate
+        "lambda_pre": 1.0,   # presymptomatic progression rate
+        "mu": 1.0,           # asymptomatic/symptomatic recovery rate
 
-        "K1": 2,         # number of E stages
-        "K_pre": 2,      # number of I_pre stages
-        "K2": 2,         # number of I_asym stages
-        "K3": 2,         # number of I_sym stages
+        "K1": 2,             # number of exposed stages
+        "K_pre": 2,          # number of presymptomatic infectious stages
+        "K2": 2,             # number of asymptomatic infectious stages
+        "K3": 2,             # number of symptomatic infectious stages
 
-        "alpha": 0.25,    # branching at E:K1 probability to go to I_asym:1
-        "p_detect": 0.8,   # detection probability upon entry to Is:1
+        "alpha": 0.25,       # P(Ip:K_pre -> Ia:1)
     }
 
     time_max = 50.0
-    rng = np.random.default_rng(12345)
     n_init_infected = 2
+    seed = 12345
+    wave = "wave2"
 
+    print("Simulation inputs")
+    print("=================")
+    print(f"time_max = {time_max}")
+    print(f"n_init_infected = {n_init_infected}")
+    print(f"rng seed = {seed}")
+    print(f"wave = {wave!r}")
+    print()
+    print("model_params =")
+    pprint(model_params)
+    print()
+
+    # 3. Run simulation
     out = gillespie_sim(
         graph_g=graph_g,
         model_params=model_params,
         time_max=time_max,
-        rng=rng,
+        rng=np.random.default_rng(seed),
         n_init_infected=n_init_infected,
+        wave=wave
     )
 
-    print("out['init'] =")
-    pprint(out['init'])
+    # 4. Latent disease-process output
+    print("Simulation output: latent disease process")
+    print("=========================================")
+    print("initial infected =")
+    pprint(out["init"])
     print()
 
-    print("out['node_order'] =")
-    pprint(out['node_order'])
-    print()
+    print_time_counts(
+        times=out["times"],
+        counts=out["counts"],
+        title="First time points with latent disease counts",
+        n=10,
+    )
 
-    print("out['events'][:5] =")
-    pprint(out['events'][:5])
-    print()
+    print_last_time_counts(
+        times=out["times"],
+        counts=out["counts"],
+        title="Last time points with latent disease counts",
+        n=10,
+    )
 
-    tc = list(zip(out["times"], out["counts"]))
+    print_disease_events(
+        events=out["events"],
+        title="First disease events",
+        n=10,
+    )
 
-    print("first 10 time points with counts:")
-    for t, c in tc[:10]:
-        print(float(t), c)
-    print()
+    # 5. Detection process output
+    print("Simulation output: observed resident cases")
+    print("==========================================")
+    print_detected_process(out["detected"])
+    print_detection_events(out["detected"])
+    print_outbreaks(out["detected"])
 
-    print("last 10 time points with counts:")
-    for t, c in tc[-10:]:
-        print(float(t), c)
-    print()
-
-    print("last 10 time points with D(t) only:")
-    for t, c in tc[-10:]:
-        print(float(t), c["D"])
-    print()
-
-
+    print("Final summary")
+    print("=============")
+    print(f"final latent disease counts = {out['counts'][-1]}")
+    print(f"final detected counts = {out['detected']['counts'][-1]}")
+    print(f"detected resident nodes = {detected_resident_nodes(out)}")
